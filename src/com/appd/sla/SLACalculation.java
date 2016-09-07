@@ -47,6 +47,7 @@ public class SLACalculation {
 		String[] config = new String[12];
 		String line = null;
 		String path = "./properties.txt";
+		HttpClient client = null;
 		
 		// Get configuration from properties file
 		FileInputStream fis = new FileInputStream(path);
@@ -79,8 +80,8 @@ public class SLACalculation {
 		provider.setCredentials(AuthScope.ANY, credentials);
 	//	HttpClient client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
 	
-		HttpClient client = null;
-//		createSchema(client,eventsSchemaURL,apiKey,createSchema);
+		
+		//createSchema(client,eventsSchemaURL,apiKey,accountName,createSchema); //need an httpget query to see if it exists
 		String [] allBT = businessTransactions.split(",");
 		String [] allSLA = btSLA.split(",");
 		// BT loop
@@ -92,14 +93,15 @@ public class SLACalculation {
 			System.out.println(i);
 			System.out.println(allBT.length);
 			valueSLAMiss = getData(client,eventsQueryURL,apiKey,accountName,contentType,createNewSql(getSQLSLA," > ",allSLA[i],allBT[i]));
-			client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
+			//client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
 			
 			System.out.println("SLAMiss is done");
 			valueSLAPass = getData(client,eventsQueryURL,apiKey,accountName,contentType,createNewSql(getSQLSLA," < ",allSLA[i],allBT[i]));
 			System.out.println("SLAPass is done");
-			client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
+			//client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
 			
 			postSchema(client,eventsPublishURL,apiKey,accountName,contentType,valueSLAMiss,valueSLAPass,allBT[i]);
+			HttpClientUtils.closeQuietly(client);
 		}
 		
 				
@@ -120,10 +122,13 @@ public class SLACalculation {
 		*/
 	}
 	
-	public static void createSchema(HttpClient client,String connectionString, String apiKey, String sqlString) throws ClientProtocolException, IOException {
-
+	public static void createSchema(HttpClient client,String connectionString, String apiKey, String accountName , String sqlString) throws ClientProtocolException, IOException {
+		HttpGet get = new HttpGet(connectionString);
+		//get.getURI()
 		HttpPost post = new HttpPost(connectionString);
-		post.setEntity(new StringEntity(apiKey + " " + sqlString));
+		post.addHeader("X-Events-API-AccountName",accountName);
+		post.addHeader("X-Events-API-Key",apiKey);
+		post.setEntity(new StringEntity(sqlString));
 		HttpResponse postResult = client.execute(post);
 		System.out.println(postResult.getStatusLine().getStatusCode());
 		//flag = true
@@ -166,7 +171,6 @@ public class SLACalculation {
 	
 		} finally {
 				HttpClientUtils.closeQuietly(postResult);
-				HttpClientUtils.closeQuietly(client);
 		}
 		//return parseResults(postResult.getEntity().toString());
 		// example result
