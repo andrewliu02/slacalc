@@ -8,5 +8,5 @@ http://localhost:9080/events/query
 customer1_c7710d80-aa90-4ec4-a7df-6ca8ccf94746
 application/vnd.appd.events+json;v=1
 "Login","Search","Confirm","Update"
--d '{"schema" : { "BT": "string", "RespTime": "integer", "PassFail": "string"}}
+'{"schema" : { "BT": "string", "RespTime": "integer", "PassFail": "string"}}
 1000,2000,3000,4000
