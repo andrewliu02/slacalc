@@ -35,16 +35,19 @@ public class SLACalculation {
 		String eventsSchemaURL = null;
 		String eventsPublishURL = null;
 		String eventsQueryURL = null;
-		String apiKey = null;
+		String getApiKey = null;    // this is for the schema we are going to read from
+		String postApiKey = null;    //
 		String accountName = null;
 		String contentType = null;
 		String createSchema = null;
 		String businessTransactions = null;
+		String customerName = null;
+		String dataCenter = null;
 		String btSLA = null;
 		int valueSLAMiss = 0;
 		int valueSLAPass = 0;
 		int count = 0;
-		String[] config = new String[12];
+		String[] config = new String[15];
 		String line = null;
 		String path = "./properties.txt";
 		HttpClient client = null;
@@ -68,12 +71,15 @@ public class SLACalculation {
 		 eventsSchemaURL =		config[3];
 		 eventsPublishURL = 	config[4];
 		 eventsQueryURL = 		config[5];
-		 apiKey = 				config[6];
-		 accountName = 			config[7];
-		 contentType = 			config[8];
-		 businessTransactions = config[9]; //"login","checkout"
-		 createSchema = 		config[10];
-		 btSLA = 				config[11];
+		 getApiKey = 			config[6];
+		 postApiKey =			config[7];
+		 accountName = 			config[8];
+		 contentType = 			config[9];
+		 businessTransactions = config[10]; //"login","checkout"
+		 customerName =			config[11]; // "Wertner Tools", "B & B Distribution"
+		 dataCenter =			config[12]; // "Raleigh", "Dallas"
+		 createSchema = 		config[13];
+		 btSLA = 				config[14];
 
 		CredentialsProvider provider = new BasicCredentialsProvider();
     	UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(user, pass);
@@ -81,27 +87,36 @@ public class SLACalculation {
 	//	HttpClient client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
 	
 		
-		//createSchema(client,eventsSchemaURL,apiKey,accountName,createSchema); //need an httpget query to see if it exists
+		//createSchema(client,eventsSchemaURL,postApiKey,accountName,createSchema); //need an httpget query to see if it exists
 		String [] allBT = businessTransactions.split(",");
 		String [] allSLA = btSLA.split(",");
+		String [] allDC = dataCenter.split(",");
+		String [] allCust = customerName.split(",");
 		// BT loop
-		// bt needs to be in ""
-		for(int i = 0;i<allBT.length;i++)
+		// bt, customerName, and dataCenter all needs to be in ""
+		for(int k = 0; k<allDC.length;k++)
 		{
-			client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
+			for(int j = 0;j<allCust.length;j++)
+			{ 
+				for(int i = 0;i<allBT.length;i++)
+				{
+					client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
 			
-			System.out.println(i);
-			System.out.println(allBT.length);
-			valueSLAMiss = getData(client,eventsQueryURL,apiKey,accountName,contentType,createNewSql(getSQLSLA," > ",allSLA[i],allBT[i]));
-			//client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
+					System.out.println(k);
+					System.out.println(j);
+					System.out.println(i);
+					valueSLAMiss = getData(client,eventsQueryURL,getApiKey,accountName,contentType,createNewSql(getSQLSLA," > ",allSLA[i],allBT[i],allCust[j],allDC[k]));
+					//client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
 			
-			System.out.println("SLAMiss is done");
-			valueSLAPass = getData(client,eventsQueryURL,apiKey,accountName,contentType,createNewSql(getSQLSLA," < ",allSLA[i],allBT[i]));
-			System.out.println("SLAPass is done");
-			//client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
+					System.out.println("SLAMiss is done");
+					valueSLAPass = getData(client,eventsQueryURL,getApiKey,accountName,contentType,createNewSql(getSQLSLA," < ",allSLA[i],allBT[i],allCust[j],allDC[k]));
+					System.out.println("SLAPass is done");
+					//client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
 			
-			postSchema(client,eventsPublishURL,apiKey,accountName,contentType,valueSLAMiss,valueSLAPass,allBT[i]);
-			HttpClientUtils.closeQuietly(client);
+					postSchema(client,eventsPublishURL,postApiKey,accountName,contentType,valueSLAMiss,valueSLAPass,allBT[i],allCust[j],allDC[k]);
+					HttpClientUtils.closeQuietly(client);
+				}
+			}
 		}
 		
 				
@@ -122,48 +137,50 @@ public class SLACalculation {
 		*/
 	}
 	
-	public static void createSchema(HttpClient client,String connectionString, String apiKey, String accountName , String sqlString) throws ClientProtocolException, IOException {
+	public static void createSchema(HttpClient client,String connectionString, String postApiKey, String accountName , String sqlString) throws ClientProtocolException, IOException {
 		HttpGet get = new HttpGet(connectionString);
 		//get.getURI()
 		HttpPost post = new HttpPost(connectionString);
 		post.addHeader("X-Events-API-AccountName",accountName);
-		post.addHeader("X-Events-API-Key",apiKey);
+		post.addHeader("X-Events-API-Key",postApiKey);
 		post.setEntity(new StringEntity(sqlString));
 		HttpResponse postResult = client.execute(post);
 		System.out.println(postResult.getStatusLine().getStatusCode());
 		//flag = true
 		//Example
 		//connectionString = "localhost:9080/events/schema/SLA_Test_2"
-		//apiKey = -H"X-Events-API-AccountName:customer1_c7710d80-aa90-4ec4-a7df-6ca8ccf94746" -H"X-Events-API-Key:0f6025c7-26ef-42e7-bd84-b81cac00122c" -H"Content-type: application/vnd.appd.events+json;v=1" 
+		//postApiKey = -H"X-Events-API-AccountName:customer1_c7710d80-aa90-4ec4-a7df-6ca8ccf94746" -H"X-Events-API-Key:0f6025c7-26ef-42e7-bd84-b81cac00122c" -H"Content-type: application/vnd.appd.events+json;v=1" 
 		//sqlString = -d '{"schema" : { "BT": "string", "SLAPass": "integer", "SLAMiss": "integer", "SLAAttain": "float"}}'
 		
 	}
 	
-	public static String createNewSql(String sql, String compare, String slaValue, String bt) {
+	public static String createNewSql(String sql, String compare, String slaValue, String bt, String custName, String dc) {
 		DateTime dt = new DateTime();
 		long startDate = dt.getMillis()-3600000;
+		System.out.println(dc);
+		System.out.println(custName);
 		System.out.println(bt);
-		return sql + compare + slaValue + " AND BT = " + bt + " AND eventTimestamp > " + Long.toString(startDate) + " AND eventTimestamp < " + Long.toString(dt.getMillis());
+		return sql + compare + slaValue + " AND BT = " + bt + " AND CustomerName = " + custName + " AND DataCenter = " + dc + " AND eventTimestamp > " + Long.toString(startDate) + " AND eventTimestamp < " + Long.toString(dt.getMillis());
 	}
 	
-	public static Integer getData(HttpClient client,String connectionString, String apiKey, String accountName, String contentType, String sqlString) {
+	public static Integer getData(HttpClient client,String connectionString, String getApiKey, String accountName, String contentType, String sqlString) {
 		System.out.println(connectionString);
 		System.out.println(sqlString);
 		
 		HttpPost post = new HttpPost(connectionString);
 		
 		post.addHeader("X-Events-API-AccountName",accountName);
-		post.addHeader("X-Events-API-Key",apiKey);
+		post.addHeader("X-Events-API-Key",getApiKey);
 		post.addHeader("Content-type",contentType);
 		HttpResponse postResult = null;
 		int result = 0;
 		try {
 		post.setEntity(new StringEntity(sqlString));
-		System.out.println("About to POST to Event Service");
+		System.out.println("About to GET from Event Service");
 		postResult = client.execute(post);
 		result = parseResults(getMessage(postResult));
 		//Thread.sleep(10000);
-		System.out.println("POSTed to Event Service - Status is " + postResult.getStatusLine().getStatusCode() );
+		System.out.println("Fetched from Event Service - Status is " + postResult.getStatusLine().getStatusCode() );
 		return result;
 		} catch (Throwable ex){
 			ex.printStackTrace();
@@ -180,24 +197,26 @@ public class SLACalculation {
 		
 	}
 	
-	public static void postSchema(HttpClient client,String connectionString, String apiKey, String accountName, String contentType, int SLAMiss, int SLAPass, String bt) throws ClientProtocolException, IOException {
+	public static void postSchema(HttpClient client,String connectionString, String postApiKey, String accountName, String contentType, int SLAMiss, int SLAPass, String bt, String custName, String dc) throws ClientProtocolException, IOException {
 		System.out.println(connectionString);
 		HttpPost post = new HttpPost(connectionString);
 		DateTime dt = new DateTime();
 		String postSQL = null;
 		
-		postSQL = "[{\"eventTimestamp\": \"" + dt.now() + "\",\"BT\": " + bt + ",\"SLAPass\": " + SLAPass +
+		postSQL = "[{\"eventTimestamp\": \"" + dt.now() + "\",\"BT\": " + bt + ",\"CustomerName\": " + custName + ",\"DataCenter\": " + dc + ",\"SLAPass\": " + SLAPass +
 				",\"SLAMiss\": " + SLAMiss + ",\"SLAAttain\": " + calculatePercentage(SLAMiss,SLAPass+SLAMiss) + "}]";
 		post.addHeader("X-Events-API-AccountName",accountName);
-		post.addHeader("X-Events-API-Key",apiKey);
+		post.addHeader("X-Events-API-Key",postApiKey);
 		post.addHeader("Content-type",contentType);
 		post.setEntity(new StringEntity(postSQL));
+		System.out.println("About to POST to Event Service");
 		HttpResponse postResult = client.execute(post);
-		System.out.println(postResult.getStatusLine().getStatusCode());
+		System.out.println(postResult.getEntity().toString());
+		System.out.println("POSTed to Event Service - Status is " + postResult.getStatusLine().getStatusCode() );
 		
 		//Example
 		//connectionString = "localhost:9080/events/publish/SLA_Test_2" 
-		//apiKey = -H"X-Events-API-AccountName:customer1_c7710d80-aa90-4ec4-a7df-6ca8ccf94746" -H"X-Events-API-Key:0f6025c7-26ef-42e7-bd84-b81cac00122c" -H"Content-type: application/vnd.appd.events+json;v=1" 
+		//postApiKey = -H"X-Events-API-AccountName:customer1_c7710d80-aa90-4ec4-a7df-6ca8ccf94746" -H"X-Events-API-Key:0f6025c7-26ef-42e7-bd84-b81cac00122c" -H"Content-type: application/vnd.appd.events+json;v=1" 
 		//Dynamically created content - -d '[{"eventTimestamp": "2016-08-24T04:00:00.000Z
 		//sqlString = ","BT": "Login","SLAPass": 971,"SLAMiss": 81,"SLAAttain": 92.300}]'
 		
@@ -208,7 +227,7 @@ public class SLACalculation {
 	}
 	
 	public static String calculatePercentage(int SLAMiss, int TotalCall) {
-		Double value = (1-((double)SLAMiss/(double)TotalCall));
+		Double value = 100*(1-((double)SLAMiss/(double)TotalCall));
 //		int result = value.intValue();
 		return Double.toString(value);
 		
@@ -219,7 +238,6 @@ public class SLACalculation {
 		return Integer.valueOf(value.split("\"results\":")[1].split(",")[0].replace("[[", "").replace("]]", ""));
 	}
 	
-	//legacy - custom transaction metric
 	public static String getMessage(HttpResponse response) throws UnsupportedOperationException, IOException {
 		BufferedReader r = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 		StringBuilder total = new StringBuilder();

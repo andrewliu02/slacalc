@@ -1,0 +1,15 @@
+admin
+admin
+SELECT count(*) FROM BT_Resp_Time_3 WHERE RespTime
+http://localhost:9080/events/schema/BT_Resp_Time_3
+http://localhost:9080/events/publish/BT_HourlySLA_3
+http://localhost:9080/events/query
+f5907445-d9e1-48ac-b7ac-f791f99a2144
+021c0599-238d-4a0b-a63d-dd128269806c
+customer1_c7710d80-aa90-4ec4-a7df-6ca8ccf94746
+application/vnd.appd.events+json;v=1
+"Login","Search","Confirm","Update"
+"Conesco","Wright Labs","Soar Avionics","Myrna Financials","Toledo Ace","Grant Tooling","B & B Distribution","Wertner Dyes"
+"Raleigh","Atlanta","Dallas","Los Angeles"
+'{"schema" : { "BT": "string", "RespTime": "integer", "PassFail": "string"}}
+1000,2000,3000,4000
