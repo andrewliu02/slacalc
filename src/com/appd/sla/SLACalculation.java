@@ -41,13 +41,14 @@ public class SLACalculation {
 		String contentType = null;
 		String createSchema = null;
 		String businessTransactions = null;
+		String application = null;  // Customer Service, WebStore, etc.
 		String customerName = null;
 		String dataCenter = null;
 		String btSLA = null;
 		int valueSLAMiss = 0;
 		int valueSLAPass = 0;
 		int count = 0;
-		String[] config = new String[15];
+		String[] config = new String[16];
 		String line = null;
 		String path = "./properties.txt";
 		HttpClient client = null;
@@ -75,11 +76,12 @@ public class SLACalculation {
 		 postApiKey =			config[7];
 		 accountName = 			config[8];
 		 contentType = 			config[9];
-		 businessTransactions = config[10]; //"login","checkout"
-		 customerName =			config[11]; // "Wertner Tools", "B & B Distribution"
-		 dataCenter =			config[12]; // "Raleigh", "Dallas"
-		 createSchema = 		config[13];
-		 btSLA = 				config[14];
+		 businessTransactions = config[10]; // "login","checkout"
+		 application =			config[11]; // "Fulfillment", "Web Store"
+		 customerName =			config[12]; // "Wertner Tools", "B & B Distribution"
+		 dataCenter =			config[13]; // "Raleigh", "Dallas"
+		 createSchema = 		config[14];
+		 btSLA = 				config[15];
 
 		CredentialsProvider provider = new BasicCredentialsProvider();
     	UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(user, pass);
@@ -91,34 +93,37 @@ public class SLACalculation {
 		String [] allBT = businessTransactions.split(",");
 		String [] allSLA = btSLA.split(",");
 		String [] allDC = dataCenter.split(",");
+		String [] allApp = application.split(",");
 		String [] allCust = customerName.split(",");
 		// BT loop
 		// bt, customerName, and dataCenter all needs to be in ""
-		for(int k = 0; k<allDC.length;k++)
+		for(int l = 0; l<allDC.length; l++)
 		{
-			for(int j = 0;j<allCust.length;j++)
-			{ 
-				for(int i = 0;i<allBT.length;i++)
-				{
-					client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
+			for(int k = 0; k<allApp.length; k++)
+			{	
+				for(int j = 0; j<allCust.length; j++)
+				{ 
+					for(int i = 0; i<allBT.length; i++)
+					{
+						client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
 			
-					System.out.println(k);
-					System.out.println(j);
-					System.out.println(i);
-					valueSLAMiss = getData(client,eventsQueryURL,getApiKey,accountName,contentType,createNewSql(getSQLSLA," > ",allSLA[i],allBT[i],allCust[j],allDC[k]));
-					//client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
+						System.out.println(k);
+						System.out.println(j);
+						System.out.println(i);
+						valueSLAMiss = getData(client,eventsQueryURL,getApiKey,accountName,contentType,createNewSql(getSQLSLA," > ",allSLA[i],allBT[i],allCust[j],allApp[k],allDC[l]));
+						//client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
 			
-					System.out.println("SLAMiss is done");
-					valueSLAPass = getData(client,eventsQueryURL,getApiKey,accountName,contentType,createNewSql(getSQLSLA," < ",allSLA[i],allBT[i],allCust[j],allDC[k]));
-					System.out.println("SLAPass is done");
-					//client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
+						System.out.println("SLAMiss is done");
+						valueSLAPass = getData(client,eventsQueryURL,getApiKey,accountName,contentType,createNewSql(getSQLSLA," < ",allSLA[i],allBT[i],allCust[j],allApp[k],allDC[l]));
+						System.out.println("SLAPass is done");
+						//client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).setConnectionTimeToLive(1, TimeUnit.MINUTES).build();
 			
-					postSchema(client,eventsPublishURL,postApiKey,accountName,contentType,valueSLAMiss,valueSLAPass,allBT[i],allCust[j],allDC[k]);
-					HttpClientUtils.closeQuietly(client);
+						postSchema(client,eventsPublishURL,postApiKey,accountName,contentType,valueSLAMiss,valueSLAPass,allBT[i],allCust[j],allApp[k],allDC[l]);
+						HttpClientUtils.closeQuietly(client);
+					}
 				}
 			}
 		}
-		
 				
 		// loop through the bt list and add in the bt and after that, add in the static string - & starttime = (dt.getMillis()-3600000) & endtime = dt.getMillis()
 		
@@ -154,7 +159,7 @@ public class SLACalculation {
 		
 	}
 	
-	public static String createNewSql(String sql, String compare, String slaValue, String bt, String custName, String dc) {
+	public static String createNewSql(String sql, String compare, String slaValue, String bt, String custName, String app, String dc) {
 		DateTime dt = new DateTime();
 		long startDate = dt.getMillis()-3600000;
 		System.out.println(dc);
@@ -197,13 +202,13 @@ public class SLACalculation {
 		
 	}
 	
-	public static void postSchema(HttpClient client,String connectionString, String postApiKey, String accountName, String contentType, int SLAMiss, int SLAPass, String bt, String custName, String dc) throws ClientProtocolException, IOException {
+	public static void postSchema(HttpClient client,String connectionString, String postApiKey, String accountName, String contentType, int SLAMiss, int SLAPass, String bt, String custName, String app, String dc) throws ClientProtocolException, IOException {
 		System.out.println(connectionString);
 		HttpPost post = new HttpPost(connectionString);
 		DateTime dt = new DateTime();
 		String postSQL = null;
 		
-		postSQL = "[{\"eventTimestamp\": \"" + dt.now() + "\",\"BT\": " + bt + ",\"CustomerName\": " + custName + ",\"DataCenter\": " + dc + ",\"SLAPass\": " + SLAPass +
+		postSQL = "[{\"eventTimestamp\": \"" + dt.now() + "\",\"BT\": " + bt + ",\"CustomerName\": " + custName + ",\"ApplicationName\": " + app + ",\"DataCenter\": " + dc + ",\"SLAPass\": " + SLAPass +
 				",\"SLAMiss\": " + SLAMiss + ",\"SLAAttain\": " + calculatePercentage(SLAMiss,SLAPass+SLAMiss) + "}]";
 		post.addHeader("X-Events-API-AccountName",accountName);
 		post.addHeader("X-Events-API-Key",postApiKey);
