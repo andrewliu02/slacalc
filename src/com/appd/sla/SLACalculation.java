@@ -36,7 +36,7 @@ public class SLACalculation {
 		String eventsPublishURL = null;
 		String eventsQueryURL = null;
 		String getApiKey = null;    // this is for the schema we are going to read from
-		String postApiKey = null;    //
+		String postApiKey = null;
 		String accountName = null;
 		String contentType = null;
 		String createSchema = null;
