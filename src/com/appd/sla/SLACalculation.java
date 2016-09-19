@@ -41,7 +41,7 @@ public class SLACalculation {
 		String contentType = null;
 		String createSchema = null;
 		String businessTransactions = null;
-		String application = null;  // Customer Service, WebStore, etc.
+		String application = null;
 		String customerName = null;
 		String dataCenter = null;
 		String btSLA = null;
@@ -77,7 +77,7 @@ public class SLACalculation {
 		 accountName = 			config[8];
 		 contentType = 			config[9];
 		 businessTransactions = config[10]; // "login","checkout"
-		 application =			config[11]; // "Fulfillment", "Web Store"
+		 application =			config[11]; // "Customer Service", "WebStore"
 		 customerName =			config[12]; // "Wertner Tools", "B & B Distribution"
 		 dataCenter =			config[13]; // "Raleigh", "Dallas"
 		 createSchema = 		config[14];
